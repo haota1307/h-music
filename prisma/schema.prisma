@@ -18,6 +18,58 @@ enum UserRole {
   MODERATOR
 }
 
+enum PermissionType {
+  // Content Management
+  CREATE_SONG
+  EDIT_SONG
+  DELETE_SONG
+  PUBLISH_SONG
+
+  // Album Management
+  CREATE_ALBUM
+  EDIT_ALBUM
+  DELETE_ALBUM
+  PUBLISH_ALBUM
+
+  // Playlist Management
+  CREATE_PLAYLIST
+  EDIT_PLAYLIST
+  DELETE_PLAYLIST
+  SHARE_PLAYLIST
+
+  // User Management
+  VIEW_USERS
+  EDIT_USERS
+  DELETE_USERS
+  SUSPEND_USERS
+
+  // Content Moderation
+  MODERATE_CONTENT
+  MODERATE_COMMENTS
+  HANDLE_REPORTS
+
+  // Analytics & Reports
+  VIEW_ANALYTICS
+  VIEW_REPORTS
+  EXPORT_DATA
+
+  // System Admin
+  MANAGE_SYSTEM
+  MANAGE_PERMISSIONS
+  MANAGE_SUBSCRIPTIONS
+
+  // Artist Features
+  UPLOAD_CONTENT
+  MONETIZE_CONTENT
+  VIEW_ARTIST_ANALYTICS
+
+  // Premium Features
+  DOWNLOAD_SONGS
+  HIGH_QUALITY_AUDIO
+  AD_FREE_LISTENING
+  UNLIMITED_SKIPS
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -175,6 +227,10 @@ model User {
   playlistCollaborators PlaylistCollaborator[]
   playlistFollowers     PlaylistFollower[]
   auditLogs             AuditLog[]
+
+  // Permission System
+  userPermissions UserPermission[]
+  rolePermissions RolePermission[] @relation("UserRoles")
 
   @@map("users")
 }
