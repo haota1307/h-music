@@ -1,5 +1,5 @@
 import { User, UserProfile, UserSubscription } from "./user";
-import { UserRole, SubscriptionTier, PermissionType } from "@prisma/client";
+import { UserRole, SubscriptionTier } from "@prisma/client";
 import { DefaultSession } from "next-auth";
 
 // Authentication types
@@ -198,7 +198,6 @@ export interface TwoFactorDisableRequest {
 export interface DeleteAccountRequest {
   password: string;
   confirmationText: string;
-  reason?: string;
   feedback?: string;
 }
 
@@ -210,7 +209,7 @@ export interface SocialLoginState {
   redirectUrl?: string;
 }
 
-// Account linking
+// Linked accounts
 export interface LinkedAccount {
   id: string;
   provider: string;
@@ -234,6 +233,7 @@ export interface UnlinkAccountRequest {
   password: string;
 }
 
+// NextAuth type declarations
 declare module "next-auth" {
   interface Session {
     user: {
@@ -245,7 +245,6 @@ declare module "next-auth" {
       subscriptionTier: SubscriptionTier;
       isVerified: boolean;
       isArtist: boolean;
-      permissions: PermissionType[];
     } & DefaultSession["user"];
   }
 
@@ -257,7 +256,6 @@ declare module "next-auth" {
     subscriptionTier: SubscriptionTier;
     isVerified: boolean;
     isArtist: boolean;
-    permissions: PermissionType[];
   }
 }
 
@@ -271,8 +269,11 @@ declare module "next-auth/jwt" {
     subscriptionTier: SubscriptionTier;
     isVerified: boolean;
     isArtist: boolean;
-    permissions: PermissionType[];
     userStatus?: string;
+    // Token refresh fields
+    iat?: number; // issued at
+    exp?: number; // expires at
+    refreshAt?: number; // when to refresh
   }
 }
 

@@ -10,6 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useTokenRefresh } from "@/hooks/use-token-refresh";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,9 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, className }: MainLayoutProps) {
+  // Enable automatic token refresh
+  useTokenRefresh();
+
   return (
     <SidebarProvider>
       <AppSidebar />

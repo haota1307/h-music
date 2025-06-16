@@ -5,113 +5,6 @@ import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { PermissionType } from "@prisma/client";
-
-// Permission helper functions
-export async function getUserPermissions(
-  userId: string
-): Promise<PermissionType[]> {
-  const userPermissions = await prisma.userPermission.findMany({
-    where: {
-      userId,
-      granted: true,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-    },
-    include: {
-      permission: true,
-    },
-  });
-
-  return userPermissions.map((up) => up.permission.name);
-}
-
-export async function hasPermission(
-  userId: string,
-  permission: PermissionType
-): Promise<boolean> {
-  const userPermissions = await getUserPermissions(userId);
-  return userPermissions.includes(permission);
-}
-
-export async function grantPermission(
-  userId: string,
-  permission: PermissionType,
-  grantedBy?: string,
-  expiresAt?: Date,
-  reason?: string
-) {
-  const permissionRecord = await prisma.permission.findUnique({
-    where: { name: permission },
-  });
-
-  if (!permissionRecord) {
-    throw new Error(`Permission ${permission} not found`);
-  }
-
-  // Handle grantedBy field - only pass valid ObjectId or null
-  const grantedByObjectId =
-    grantedBy && grantedBy !== "system" && grantedBy.length === 24
-      ? grantedBy
-      : null;
-
-  return await prisma.userPermission.upsert({
-    where: {
-      userId_permissionId: {
-        userId,
-        permissionId: permissionRecord.id,
-      },
-    },
-    update: {
-      granted: true,
-      grantedBy: grantedByObjectId,
-      expiresAt,
-      reason,
-      updatedAt: new Date(),
-    },
-    create: {
-      userId,
-      permissionId: permissionRecord.id,
-      granted: true,
-      grantedBy: grantedByObjectId,
-      expiresAt,
-      reason,
-    },
-  });
-}
-
-export async function revokePermission(
-  userId: string,
-  permission: PermissionType,
-  reason?: string
-) {
-  const permissionRecord = await prisma.permission.findUnique({
-    where: { name: permission },
-  });
-
-  if (!permissionRecord) {
-    throw new Error(`Permission ${permission} not found`);
-  }
-
-  return await prisma.userPermission.upsert({
-    where: {
-      userId_permissionId: {
-        userId,
-        permissionId: permissionRecord.id,
-      },
-    },
-    update: {
-      granted: false,
-      reason,
-      updatedAt: new Date(),
-    },
-    create: {
-      userId,
-      permissionId: permissionRecord.id,
-      granted: false,
-      reason,
-    },
-  });
-}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -134,15 +27,6 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email.toLowerCase() },
           include: {
             profile: true,
-            userPermissions: {
-              where: {
-                granted: true,
-                OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-              },
-              include: {
-                permission: true,
-              },
-            },
           },
         });
 
@@ -189,7 +73,6 @@ export const authOptions: NextAuthOptions = {
           subscriptionTier: user.subscriptionTier,
           isVerified: user.isVerified,
           isArtist: user.isArtist,
-          permissions: user.userPermissions.map((up) => up.permission.name),
         };
       },
     }),
@@ -213,11 +96,17 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
+  },
+  jwt: {
+    maxAge: 7 * 24 * 60 * 60, // JWT expires in 7 days
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      const now = Math.floor(Date.now() / 1000);
+
       if (user) {
-        // New login - set all user data
+        // New login - set all user data with expiration
         token.id = user.id;
         token.username = user.username;
         token.displayName = user.displayName;
@@ -226,37 +115,78 @@ export const authOptions: NextAuthOptions = {
         token.subscriptionTier = user.subscriptionTier;
         token.isVerified = user.isVerified;
         token.isArtist = user.isArtist;
-        token.permissions = user.permissions;
+        token.iat = now;
+        token.exp = now + 7 * 24 * 60 * 60; // 7 days from now
+        token.refreshAt = now + 6 * 24 * 60 * 60; // Refresh after 6 days
       } else if (token.id) {
-        // Existing token - refresh permissions from database to ensure they're up to date
-        try {
-          const userPermissions = await getUserPermissions(token.id as string);
-          token.permissions = userPermissions;
+        // Check if token needs refresh (within 1 day of expiration)
+        const shouldRefresh =
+          trigger === "update" ||
+          (token.refreshAt && now >= (token.refreshAt as number));
 
-          // Also refresh user role and other critical data
-          const userData = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: {
-              role: true,
-              subscriptionTier: true,
-              isVerified: true,
-              isArtist: true,
-              status: true,
-            },
-          });
+        if (shouldRefresh) {
+          try {
+            // Refresh user data from database
+            const userData = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+                role: true,
+                subscriptionTier: true,
+                isVerified: true,
+                isArtist: true,
+                status: true,
+              },
+            });
 
-          if (userData) {
+            if (!userData) {
+              // User no longer exists, mark token as invalid but don't return null
+              token.id = "";
+              token.username = "";
+              token.role = "USER" as any;
+              return token;
+            }
+
+            if (
+              userData.status === "SUSPENDED" ||
+              userData.status === "BANNED"
+            ) {
+              // User is suspended/banned, mark in token
+              token.userStatus = userData.status;
+              return token;
+            }
+
+            // Update token with fresh data
+            token.email = userData.email;
+            token.username = userData.username;
+            token.displayName = userData.displayName || undefined;
+            token.avatar = userData.avatar || undefined;
             token.role = userData.role;
             token.subscriptionTier = userData.subscriptionTier;
             token.isVerified = userData.isVerified;
             token.isArtist = userData.isArtist;
-
-            // Mark if user is suspended/banned (will be handled in session callback)
             token.userStatus = userData.status;
+
+            // Update token expiration times
+            token.iat = now;
+            token.exp = now + 7 * 24 * 60 * 60; // Extend for another 7 days
+            token.refreshAt = now + 6 * 24 * 60 * 60; // Next refresh in 6 days
+
+            // Update user's last active time
+            await prisma.user.update({
+              where: { id: token.id as string },
+              data: { lastActiveAt: new Date() },
+            });
+
+            console.log(`Token refreshed for user ${userData.email}`);
+          } catch (error) {
+            console.error("Error refreshing token:", error);
+            // Don't fail the session, just keep existing token
           }
-        } catch (error) {
-          console.error("Error refreshing user permissions:", error);
-          // Don't fail the session, just keep existing permissions
         }
       }
       return token;
@@ -272,7 +202,6 @@ export const authOptions: NextAuthOptions = {
               ...session.user,
               id: "",
               role: "USER" as any,
-              permissions: [] as PermissionType[],
             },
           };
         }
@@ -285,7 +214,6 @@ export const authOptions: NextAuthOptions = {
         session.user.subscriptionTier = token.subscriptionTier as any;
         session.user.isVerified = token.isVerified as boolean;
         session.user.isArtist = token.isArtist as boolean;
-        session.user.permissions = token.permissions as PermissionType[];
       }
       return session;
     },
@@ -298,7 +226,7 @@ export const authOptions: NextAuthOptions = {
 
           if (!existingUser) {
             // Create new user from OAuth
-            const newUser = await prisma.user.create({
+            await prisma.user.create({
               data: {
                 email: user.email!,
                 username:
@@ -318,23 +246,6 @@ export const authOptions: NextAuthOptions = {
                 },
               },
             });
-
-            // Grant basic permissions to new users
-            const basicPermissions: PermissionType[] = [
-              "CREATE_PLAYLIST",
-              "EDIT_PLAYLIST",
-              "SHARE_PLAYLIST",
-            ];
-
-            for (const permission of basicPermissions) {
-              await grantPermission(
-                newUser.id,
-                permission,
-                "system",
-                undefined,
-                "New user default permissions"
-              );
-            }
           }
           return true;
         } catch (error) {
@@ -366,31 +277,4 @@ export const authOptions: NextAuthOptions = {
       });
     },
   },
-};
-
-// Default permissions for new users by role
-export const DEFAULT_PERMISSIONS = {
-  USER: [
-    "CREATE_PLAYLIST",
-    "EDIT_PLAYLIST",
-    "SHARE_PLAYLIST",
-  ] as PermissionType[],
-  ARTIST: [
-    "CREATE_PLAYLIST",
-    "EDIT_PLAYLIST",
-    "SHARE_PLAYLIST",
-    "UPLOAD_CONTENT",
-    "CREATE_ALBUM",
-    "EDIT_ALBUM",
-    "VIEW_ARTIST_ANALYTICS",
-  ] as PermissionType[],
-  PREMIUM: [
-    "CREATE_PLAYLIST",
-    "EDIT_PLAYLIST",
-    "SHARE_PLAYLIST",
-    "DOWNLOAD_SONGS",
-    "HIGH_QUALITY_AUDIO",
-    "AD_FREE_LISTENING",
-    "UNLIMITED_SKIPS",
-  ] as PermissionType[],
 };

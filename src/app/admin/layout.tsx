@@ -33,6 +33,7 @@ import {
   Library,
 } from "lucide-react";
 import Link from "next/link";
+import { useTokenRefresh } from "@/hooks/use-token-refresh";
 
 const adminMenuItems = [
   {
@@ -161,6 +162,9 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Enable automatic token refresh for admin panel
+  useTokenRefresh();
 
   useEffect(() => {
     if (status === "loading") return; // Still loading
