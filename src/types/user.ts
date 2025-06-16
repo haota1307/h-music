@@ -182,3 +182,47 @@ export interface UserSession {
   createdAt: string;
   lastAccessedAt: string;
 }
+
+// Profile management types
+export interface UserProfileData {
+  id: string;
+  email: string;
+  username: string;
+  displayName: string | null;
+  avatar: string | null;
+  role: string;
+  subscriptionTier: string;
+  isVerified: boolean;
+  isArtist: boolean;
+  status: string;
+  createdAt: string;
+  lastActiveAt: string | null;
+  profile: {
+    bio: string | null;
+    location: string | null;
+    website: string | null;
+    socialLinks: Record<string, string>;
+    preferences: Record<string, any>;
+  } | null;
+  stats: {
+    tracks: number;
+    albums: number;
+    playlists: number;
+    followers: number;
+    following: number;
+  };
+}
+
+export interface UpdateProfileData {
+  displayName?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  socialLinks?: Record<string, string>;
+  preferences?: Record<string, any>;
+}
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+}
