@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useUpdateAvatar } from "@/hooks/use-profile";
 
 interface AvatarUploadProps {
   currentAvatar?: string;
@@ -18,14 +19,26 @@ export function AvatarUpload({
   onUploadSuccess,
   className,
 }: AvatarUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const updateAvatarMutation = useUpdateAvatar();
 
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Kích thước file không được vượt quá 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn file hình ảnh");
+      return;
+    }
 
     // Create preview
     const reader = new FileReader();
@@ -34,34 +47,16 @@ export function AvatarUpload({
     };
     reader.readAsDataURL(file);
 
-    // Upload file
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/user/upload-avatar", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success("Tải lên ảnh đại diện thành công!");
-        onUploadSuccess?.(result.url);
-      } else {
-        toast.error(result.error || "Tải lên thất bại");
+    // Upload using the hook with Redux dispatch
+    updateAvatarMutation.mutate(file, {
+      onSuccess: (data) => {
+        onUploadSuccess?.(data.url);
+        // Preview will be updated by Redux state
+      },
+      onError: () => {
         setPreviewUrl(null);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Lỗi mạng. Vui lòng thử lại.");
-      setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-    }
+      },
+    });
   };
 
   return (
@@ -78,17 +73,17 @@ export function AvatarUpload({
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          disabled={isUploading}
+          disabled={updateAvatarMutation.isPending}
           className="hidden"
           id="avatar-upload"
         />
         <Button
           variant="outline"
           onClick={() => document.getElementById("avatar-upload")?.click()}
-          disabled={isUploading}
+          disabled={updateAvatarMutation.isPending}
           className="w-full"
         >
-          {isUploading ? (
+          {updateAvatarMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Đang tải lên...

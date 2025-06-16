@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { useSession } from "next-auth/react";
+import { updateAvatar, updateUser } from "@/store/slices/authSlice";
 import apiClient, { ApiError } from "@/lib/axios";
 import { USER_ENDPOINTS } from "@/constants/api-endpoints";
 import {
@@ -32,13 +35,15 @@ export function useProfile() {
 // Hook: Update profile
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const { update, data: session } = useSession();
 
   return useMutation({
     mutationFn: async (data: UpdateProfileData): Promise<any> => {
       const response = await apiClient.put(USER_ENDPOINTS.UPDATE_PROFILE, data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Update profile cache
       queryClient.setQueryData(
         PROFILE_QUERY_KEYS.PROFILE,
@@ -53,6 +58,25 @@ export function useUpdateProfile() {
           return old;
         }
       );
+
+      // Update Redux state with new profile data
+      dispatch(
+        updateUser({
+          displayName: data.user.displayName,
+        })
+      );
+
+      // Update NextAuth session with new profile data
+      try {
+        await update({
+          user: {
+            ...session?.user,
+            displayName: data.user.displayName,
+          },
+        });
+      } catch (error) {
+        console.error("Failed to update NextAuth session:", error);
+      }
 
       toast.success("Cập nhật hồ sơ thành công!");
     },
@@ -84,6 +108,8 @@ export function useChangePassword() {
 // Hook: Update avatar (using existing upload endpoint)
 export function useUpdateAvatar() {
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+  const { update, data: session } = useSession();
 
   return useMutation({
     mutationFn: async (file: File): Promise<any> => {
@@ -101,7 +127,7 @@ export function useUpdateAvatar() {
       );
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Update profile cache with new avatar
       queryClient.setQueryData(
         PROFILE_QUERY_KEYS.PROFILE,
@@ -115,6 +141,23 @@ export function useUpdateAvatar() {
           return old;
         }
       );
+
+      // Update Redux state with new avatar
+      dispatch(updateAvatar(data.url));
+
+      // Update NextAuth session with new avatar
+      try {
+        await update({
+          user: {
+            ...session?.user,
+            avatar: data.url,
+          },
+        });
+      } catch (error) {
+        console.error("Failed to update NextAuth session:", error);
+        // Fallback: Force a session refresh
+        window.location.reload();
+      }
 
       toast.success("Cập nhật ảnh đại diện thành công!");
     },

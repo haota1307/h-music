@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,6 +70,13 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const reduxUser = useSelector((state: RootState) => state.auth.user);
+
+  // Use Redux data if available, fallback to session data
+  const currentAvatar = reduxUser?.avatar || session?.user?.avatar;
+  const currentDisplayName =
+    reduxUser?.displayName || session?.user?.displayName;
+  const currentUsername = reduxUser?.username || session?.user?.username;
 
   return (
     <aside
@@ -172,51 +181,53 @@ export function Sidebar({
         ) : status === "authenticated" && session?.user ? (
           !isCollapsed ? (
             <div className="space-y-3">
-              <Card className="bg-card/50 backdrop-blur-sm border-border cursor-pointer hover:bg-accent/50 transition-colors">
-                <div className="flex items-center gap-3 p-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center">
-                    {session.user.avatar ? (
-                      <img
-                        src={session.user.avatar}
-                        alt={session.user.displayName || session.user.username}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-sm font-medium text-white">
-                        {(
-                          session.user.displayName ||
-                          session.user.username ||
-                          session.user.email ||
-                          "U"
-                        )
-                          .charAt(0)
-                          .toUpperCase()}
-                      </span>
+              <Link href="/profile">
+                <Card className="bg-card/50 backdrop-blur-sm border-border cursor-pointer hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center">
+                      {currentAvatar ? (
+                        <img
+                          src={currentAvatar}
+                          alt={currentDisplayName || currentUsername}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-white">
+                          {(
+                            currentDisplayName ||
+                            currentUsername ||
+                            session.user.email ||
+                            "U"
+                          )
+                            .charAt(0)
+                            .toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {currentDisplayName || currentUsername}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {session.user.subscriptionTier === "FREE"
+                          ? "Miễn phí"
+                          : "Premium"}
+                      </p>
+                    </div>
+                    {session.user.isVerified && (
+                      <div className="text-blue-400">
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                        </svg>
+                      </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {session.user.displayName || session.user.username}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {session.user.subscriptionTier === "FREE"
-                        ? "Miễn phí"
-                        : "Premium"}
-                    </p>
-                  </div>
-                  {session.user.isVerified && (
-                    <div className="text-blue-400">
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </Card>
+                </Card>
+              </Link>
               <Button
                 variant="ghost"
                 className="w-full text-muted-foreground hover:text-foreground hover:bg-destructive/10 justify-start"
@@ -240,29 +251,31 @@ export function Sidebar({
             </div>
           ) : (
             <div className="space-y-2">
-              <Button
-                className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-chart-5 hover:bg-primary/90"
-                size="icon"
-              >
-                {session.user.avatar ? (
-                  <img
-                    src={session.user.avatar}
-                    alt={session.user.displayName || session.user.username}
-                    className="w-8 h-8 rounded-lg object-cover"
-                  />
-                ) : (
-                  <span className="text-sm font-medium text-white">
-                    {(
-                      session.user.displayName ||
-                      session.user.username ||
-                      session.user.email ||
-                      "U"
-                    )
-                      .charAt(0)
-                      .toUpperCase()}
-                  </span>
-                )}
-              </Button>
+              <Link href="/profile">
+                <Button
+                  className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-chart-5 hover:bg-primary/90"
+                  size="icon"
+                >
+                  {currentAvatar ? (
+                    <img
+                      src={currentAvatar}
+                      alt={currentDisplayName || currentUsername}
+                      className="w-8 h-8 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-white">
+                      {(
+                        currentDisplayName ||
+                        currentUsername ||
+                        session.user.email ||
+                        "U"
+                      )
+                        .charAt(0)
+                        .toUpperCase()}
+                    </span>
+                  )}
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"

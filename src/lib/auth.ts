@@ -102,7 +102,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 7 * 24 * 60 * 60, // JWT expires in 7 days
   },
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, session }) {
       const now = Math.floor(Date.now() / 1000);
 
       if (user) {
@@ -118,6 +118,25 @@ export const authOptions: NextAuthOptions = {
         token.iat = now;
         token.exp = now + 7 * 24 * 60 * 60; // 7 days from now
         token.refreshAt = now + 6 * 24 * 60 * 60; // Refresh after 6 days
+      } else if (trigger === "update" && session) {
+        // Handle session updates (like avatar changes)
+        if (session.user) {
+          if (session.user.avatar !== undefined) {
+            token.avatar = session.user.avatar;
+          }
+          if (session.user.displayName !== undefined) {
+            token.displayName = session.user.displayName;
+          }
+        } else {
+          // Legacy support for direct session properties
+          if (session.avatar !== undefined) {
+            token.avatar = session.avatar;
+          }
+          if (session.displayName !== undefined) {
+            token.displayName = session.displayName;
+          }
+        }
+        return token;
       } else if (token.id) {
         // Check if token needs refresh (within 1 day of expiration)
         const shouldRefresh =

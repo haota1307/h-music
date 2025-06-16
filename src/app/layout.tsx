@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ClientSessionProvider } from "@/components/providers/session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { AuthSync } from "@/components/providers/auth-sync";
+import { ReduxProvider } from "@/components/providers/redux-provider";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
@@ -32,14 +34,17 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning className="dark">
       <body className={`${inter.className} bg-background text-foreground`}>
-        <QueryProvider>
-          <ClientSessionProvider>
-            <ThemeProvider defaultTheme="dark" storageKey="h-music-theme">
-              {children}
-              <ToastProvider />
-            </ThemeProvider>
-          </ClientSessionProvider>
-        </QueryProvider>
+        <ReduxProvider>
+          <QueryProvider>
+            <ClientSessionProvider>
+              <AuthSync />
+              <ThemeProvider defaultTheme="dark" storageKey="h-music-theme">
+                {children}
+                <ToastProvider />
+              </ThemeProvider>
+            </ClientSessionProvider>
+          </QueryProvider>
+        </ReduxProvider>
       </body>
     </html>
   );
