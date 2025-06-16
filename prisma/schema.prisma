@@ -1,0 +1,933 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ARTIST
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  FAMILY
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum ActivityType {
+  PLAY
+  LIKE
+  FOLLOW
+  SHARE
+  COMMENT
+  PLAYLIST_CREATE
+  PLAYLIST_ADD
+  SEARCH
+  DOWNLOAD
+}
+
+enum ContentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PUBLISHED
+  DRAFT
+}
+
+enum AlbumType {
+  ALBUM
+  SINGLE
+  EP
+  COMPILATION
+}
+
+enum PlaylistType {
+  PUBLIC
+  PRIVATE
+  COLLABORATIVE
+  SHARED
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+  NEW_RELEASE
+  SYSTEM
+  PLAYLIST_INVITE
+}
+
+enum ReportType {
+  SPAM
+  INAPPROPRIATE
+  COPYRIGHT
+  HATE_SPEECH
+  VIOLENCE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DeviceType {
+  MOBILE
+  DESKTOP
+  TABLET
+  SMART_SPEAKER
+  TV
+  CAR
+}
+
+// User Management (7 tables)
+model User {
+  id               String           @id @default(auto()) @map("_id") @db.ObjectId
+  email            String           @unique
+  username         String           @unique
+  displayName      String?
+  avatar           String?
+  coverImage       String?
+  bio              String?
+  birthDate        DateTime?
+  country          String?
+  isVerified       Boolean          @default(false)
+  isArtist         Boolean          @default(false)
+  role             UserRole         @default(USER)
+  status           UserStatus       @default(ACTIVE)
+  subscriptionTier SubscriptionTier @default(FREE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lastActiveAt     DateTime         @default(now())
+
+  // User Profile & Preferences
+  profile      UserProfile?
+  preferences  UserPreferences?
+  subscription UserSubscription?
+
+  // User Activity
+  sessions   UserSession[]
+  activities UserActivity[]
+  devices    UserDevice[]
+
+  // Content Creation
+  playlists     Playlist[]
+  uploadedSongs Song[]         @relation("UploadedBy")
+  albums        Album[]        @relation("AlbumArtist")
+  artistProfile ArtistProfile?
+
+  // Social Features
+  likedSongs      UserLikedSong[]
+  followedArtists UserFollowArtist[] @relation("UserFollowsArtist")
+  artistFollowers UserFollowArtist[] @relation("ArtistFollowers")
+  followedUsers   UserFollow[]       @relation("UserFollows")
+  followers       UserFollow[]       @relation("UserFollowers")
+
+  // User Generated Content
+  comments Comment[]
+  reviews  Review[]
+
+  // System & Admin
+  notifications    Notification[]
+  reports          Report[]       @relation("ReportSubmitter")
+  moderatedReports Report[]       @relation("ReportModerator")
+
+  // Analytics
+  playHistory     PlayHistory[]
+  searchHistory   SearchHistory[]
+  recommendations Recommendation[]
+
+  // Payment
+  payments       Payment[]
+  paymentMethods PaymentMethod[]
+
+  // Many-to-many relations
+  songArtists           SongArtist[]
+  albumArtists          AlbumArtist[]
+  playlistSongs         PlaylistSong[]
+  playlistCollaborators PlaylistCollaborator[]
+  playlistFollowers     PlaylistFollower[]
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @unique @db.ObjectId
+  firstName   String?
+  lastName    String?
+  phone       String?
+  website     String?
+  socialLinks Json? // {instagram, twitter, facebook, etc}
+  timezone    String?
+  language    String   @default("vi")
+  isPrivate   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserPreferences {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId              String   @unique @db.ObjectId
+  theme               String   @default("dark")
+  audioQuality        String   @default("high")
+  autoPlay            Boolean  @default(true)
+  showExplicitContent Boolean  @default(true)
+  enableNotifications Boolean  @default(true)
+  emailNotifications  Boolean  @default(true)
+  pushNotifications   Boolean  @default(true)
+  shareListeningData  Boolean  @default(true)
+  crossfadeEnabled    Boolean  @default(false)
+  crossfadeDuration   Int      @default(5)
+  volumeLevel         Float    @default(0.8)
+  preferredGenres     String[] @default([])
+  blockedUsers        String[] @default([]) @db.ObjectId
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model UserSubscription {
+  id              String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String             @unique @db.ObjectId
+  tier            SubscriptionTier
+  status          SubscriptionStatus @default(ACTIVE)
+  startDate       DateTime
+  endDate         DateTime?
+  autoRenew       Boolean            @default(true)
+  paymentMethodId String?            @db.ObjectId
+  lastPaymentDate DateTime?
+  nextBillingDate DateTime?
+  trialEndDate    DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  payments      Payment[]
+
+  @@map("user_subscriptions")
+}
+
+model UserSession {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  token        String   @unique
+  refreshToken String?  @unique
+  deviceInfo   Json? // {userAgent, ip, device, browser}
+  location     Json? // {country, city, lat, lng}
+  isActive     Boolean  @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model UserActivity {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String       @db.ObjectId
+  type       ActivityType
+  entityType String? // song, album, artist, playlist
+  entityId   String?      @db.ObjectId
+  metadata   Json? // Additional activity data
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_activities")
+}
+
+model UserDevice {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String     @db.ObjectId
+  deviceId     String     @unique
+  name         String
+  type         DeviceType
+  platform     String // ios, android, windows, macos, web
+  isActive     Boolean    @default(true)
+  lastActiveAt DateTime   @default(now())
+  pushToken    String? // For push notifications
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_devices")
+}
+
+// Music Content (8 tables)
+model Song {
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  slug             String        @unique
+  duration         Int // in seconds
+  trackNumber      Int?
+  discNumber       Int           @default(1)
+  isrc             String?       @unique // International Standard Recording Code
+  audioUrl         String
+  coverImage       String?
+  lyrics           String?
+  language         String?
+  mood             String?
+  key              String? // Musical key
+  bpm              Int? // Beats per minute
+  energy           Float? // 0-1 scale
+  valence          Float? // Musical positivity 0-1
+  danceability     Float? // 0-1 scale
+  acousticness     Float? // 0-1 scale
+  instrumentalness Float? // 0-1 scale
+  liveness         Float? // 0-1 scale
+  loudness         Float? // dB
+  speechiness      Float? // 0-1 scale
+  playCount        Int           @default(0)
+  likeCount        Int           @default(0)
+  shareCount       Int           @default(0)
+  isExplicit       Boolean       @default(false)
+  isPublished      Boolean       @default(false)
+  releaseDate      DateTime
+  uploadedById     String        @db.ObjectId
+  albumId          String?       @db.ObjectId
+  labelId          String?       @db.ObjectId
+  status           ContentStatus @default(PENDING)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  uploadedBy      User             @relation("UploadedBy", fields: [uploadedById], references: [id])
+  album           Album?           @relation(fields: [albumId], references: [id])
+  label           Label?           @relation(fields: [labelId], references: [id])
+  artists         SongArtist[]
+  genres          SongGenre[]
+  features        SongFeature[]
+  playlists       PlaylistSong[]
+  likes           UserLikedSong[]
+  comments        Comment[]
+  reviews         Review[]
+  playHistory     PlayHistory[]
+  recommendations Recommendation[]
+  audioFeatures   AudioFeatures?
+  chartEntries    ChartEntry[]
+
+  @@map("songs")
+}
+
+model Album {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  slug            String        @unique
+  description     String?
+  coverImage      String
+  albumType       AlbumType     @default(ALBUM)
+  totalTracks     Int           @default(0)
+  totalDuration   Int           @default(0) // in seconds
+  releaseDate     DateTime
+  upc             String?       @unique // Universal Product Code
+  label           String?
+  copyright       String?
+  isExplicit      Boolean       @default(false)
+  isPublished     Boolean       @default(false)
+  playCount       Int           @default(0)
+  likeCount       Int           @default(0)
+  primaryArtistId String        @db.ObjectId
+  labelId         String?       @db.ObjectId
+  status          ContentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  primaryArtist User          @relation("AlbumArtist", fields: [primaryArtistId], references: [id])
+  recordLabel   Label?        @relation(fields: [labelId], references: [id])
+  songs         Song[]
+  artists       AlbumArtist[]
+  genres        AlbumGenre[]
+  reviews       Review[]
+
+  @@map("albums")
+}
+
+model ArtistProfile {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @unique @db.ObjectId
+  stageName        String
+  biography        String?
+  debutYear        Int?
+  website          String?
+  spotifyId        String?
+  appleMusicId     String?
+  youtubeChannel   String?
+  instagramHandle  String?
+  twitterHandle    String?
+  facebookPage     String?
+  monthlyListeners Int      @default(0)
+  totalStreams     BigInt   @default(0)
+  isVerified       Boolean  @default(false)
+  recordLabel      String?
+  managementEmail  String?
+  bookingEmail     String?
+  pressEmail       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("artist_profiles")
+}
+
+model Genre {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  color       String? // Hex color for UI
+  parentId    String?  @db.ObjectId
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent    Genre?          @relation("GenreHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Genre[]         @relation("GenreHierarchy")
+  songs     SongGenre[]
+  albums    AlbumGenre[]
+  playlists PlaylistGenre[]
+
+  @@map("genres")
+}
+
+model Label {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  logo        String?
+  website     String?
+  country     String?
+  foundedYear Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  songs  Song[]
+  albums Album[]
+
+  @@map("labels")
+}
+
+model SongArtist {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  songId   String @db.ObjectId
+  artistId String @db.ObjectId
+  role     String @default("primary") // primary, featured, composer, producer
+  order    Int    @default(0)
+
+  song   Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+  artist User @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, artistId])
+  @@map("song_artists")
+}
+
+model AlbumArtist {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  albumId  String @db.ObjectId
+  artistId String @db.ObjectId
+  role     String @default("primary") // primary, featured, producer
+  order    Int    @default(0)
+
+  album  Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  artist User  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, artistId])
+  @@map("album_artists")
+}
+
+model SongGenre {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  songId  String @db.ObjectId
+  genreId String @db.ObjectId
+
+  song  Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, genreId])
+  @@map("song_genres")
+}
+
+model AlbumGenre {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  albumId String @db.ObjectId
+  genreId String @db.ObjectId
+
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, genreId])
+  @@map("album_genres")
+}
+
+// Playlists & Collections (4 tables)
+model Playlist {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  slug          String       @unique
+  description   String?
+  coverImage    String?
+  type          PlaylistType @default(PUBLIC)
+  isOfficial    Boolean      @default(false)
+  tags          String[]     @default([])
+  playCount     Int          @default(0)
+  likeCount     Int          @default(0)
+  shareCount    Int          @default(0)
+  totalTracks   Int          @default(0)
+  totalDuration Int          @default(0) // in seconds
+  createdById   String       @db.ObjectId
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  createdBy     User                   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  songs         PlaylistSong[]
+  genres        PlaylistGenre[]
+  collaborators PlaylistCollaborator[]
+  followers     PlaylistFollower[]
+
+  @@map("playlists")
+}
+
+model PlaylistSong {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId String   @db.ObjectId
+  songId     String   @db.ObjectId
+  addedById  String   @db.ObjectId
+  order      Int      @default(0)
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song     Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  addedBy  User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, songId])
+  @@map("playlist_songs")
+}
+
+model PlaylistGenre {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId String @db.ObjectId
+  genreId    String @db.ObjectId
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  genre    Genre    @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, genreId])
+  @@map("playlist_genres")
+}
+
+model PlaylistCollaborator {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  playlistId String   @db.ObjectId
+  userId     String   @db.ObjectId
+  canEdit    Boolean  @default(false)
+  canInvite  Boolean  @default(false)
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, userId])
+  @@map("playlist_collaborators")
+}
+
+// Social Features (6 tables)
+model UserFollow {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  followerId  String   @db.ObjectId
+  followingId String   @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+model UserFollowArtist {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  artistId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFollowsArtist", fields: [userId], references: [id], onDelete: Cascade)
+  artist User @relation("ArtistFollowers", fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artistId])
+  @@map("user_follow_artists")
+}
+
+model UserLikedSong {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  songId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+  @@map("user_liked_songs")
+}
+
+model PlaylistFollower {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  playlistId String   @db.ObjectId
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, playlistId])
+  @@map("playlist_followers")
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  content   String
+  userId    String   @db.ObjectId
+  songId    String?  @db.ObjectId
+  albumId   String?  @db.ObjectId
+  parentId  String?  @db.ObjectId // For nested comments
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song    Song?     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int // 1-5 stars
+  content   String?
+  userId    String   @db.ObjectId
+  songId    String?  @db.ObjectId
+  albumId   String?  @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song  Song?  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  album Album? @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+  @@unique([userId, albumId])
+  @@map("reviews")
+}
+
+// Analytics & Recommendations (4 tables)
+model PlayHistory {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  songId     String   @db.ObjectId
+  playedAt   DateTime @default(now())
+  duration   Int // How long the song was played (in seconds)
+  wasSkipped Boolean  @default(false)
+  skipTime   Int? // At what point was it skipped
+  deviceType String?
+  location   Json? // {country, city}
+  sessionId  String? // Group plays by session
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@map("play_history")
+}
+
+model SearchHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  query     String
+  category  String? // song, artist, album, playlist
+  resultId  String?  @db.ObjectId
+  clicked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("search_history")
+}
+
+model Recommendation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  songId    String   @db.ObjectId
+  algorithm String // collaborative, content, hybrid
+  score     Float // Recommendation confidence
+  reason    String? // Why this was recommended
+  isViewed  Boolean  @default(false)
+  isClicked Boolean  @default(false)
+  isLiked   Boolean? // User feedback
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+  @@map("recommendations")
+}
+
+model AudioFeatures {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  songId           String   @unique @db.ObjectId
+  tempo            Float? // BPM
+  timeSignature    Int? // 3, 4, 5, etc.
+  key              Int? // 0-11 representing C, C#, D, etc.
+  mode             Int? // 0 = minor, 1 = major
+  acousticness     Float? // 0.0 to 1.0
+  danceability     Float? // 0.0 to 1.0
+  energy           Float? // 0.0 to 1.0
+  instrumentalness Float? // 0.0 to 1.0
+  liveness         Float? // 0.0 to 1.0
+  loudness         Float? // dB, typically -60 to 0
+  speechiness      Float? // 0.0 to 1.0
+  valence          Float? // 0.0 to 1.0 (musical positivity)
+  analyzedAt       DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@map("audio_features")
+}
+
+// Payment & Subscription (3 tables)
+model PaymentMethod {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  type        String // card, paypal, apple_pay, google_pay
+  provider    String // stripe, paypal, etc.
+  last4       String? // Last 4 digits for cards
+  brand       String? // visa, mastercard, etc.
+  expiryMonth Int?
+  expiryYear  Int?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  metadata    Json? // Additional payment method data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions UserSubscription[]
+  payments      Payment[]
+
+  @@map("payment_methods")
+}
+
+model Payment {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String        @db.ObjectId
+  subscriptionId  String?       @db.ObjectId
+  paymentMethodId String        @db.ObjectId
+  amount          Float
+  currency        String        @default("VND")
+  status          PaymentStatus @default(PENDING)
+  description     String?
+  invoiceId       String?       @unique
+  transactionId   String?       @unique
+  metadata        Json? // Payment gateway specific data
+  processedAt     DateTime?
+  failureReason   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription  UserSubscription? @relation(fields: [subscriptionId], references: [id])
+  paymentMethod PaymentMethod     @relation(fields: [paymentMethodId], references: [id])
+
+  @@map("payments")
+}
+
+model PromotionCode {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  code          String    @unique
+  description   String?
+  discountType  String // percentage, fixed_amount, free_trial
+  discountValue Float // Percentage or amount
+  maxUses       Int? // Null for unlimited
+  usedCount     Int       @default(0)
+  validFrom     DateTime
+  validUntil    DateTime?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("promotion_codes")
+}
+
+// System & Admin (4 tables)
+model SystemConfig {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique
+  value       String
+  dataType    String   @default("string") // string, number, boolean, json
+  category    String? // audio, payment, features, etc.
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+model Notification {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String           @db.ObjectId
+  type         NotificationType
+  title        String
+  message      String
+  data         Json? // Additional notification data
+  isRead       Boolean          @default(false)
+  isActionable Boolean          @default(false)
+  actionUrl    String?
+  createdAt    DateTime         @default(now())
+  readAt       DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Report {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  reporterId  String     @db.ObjectId
+  type        ReportType
+  reason      String
+  description String?
+  entityType  String // song, user, playlist, comment
+  entityId    String     @db.ObjectId
+  status      String     @default("pending") // pending, investigating, resolved, dismissed
+  moderatorId String?    @db.ObjectId
+  resolution  String?
+  createdAt   DateTime   @default(now())
+  resolvedAt  DateTime?
+
+  reporter  User  @relation("ReportSubmitter", fields: [reporterId], references: [id], onDelete: Cascade)
+  moderator User? @relation("ReportModerator", fields: [moderatorId], references: [id])
+
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String?  @db.ObjectId
+  action     String // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entityType String? // User, Song, Album, etc.
+  entityId   String?  @db.ObjectId
+  oldValues  Json? // Previous state
+  newValues  Json? // New state
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json? // Additional context
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Additional Features (3 tables)
+model SongFeature {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  songId      String   @db.ObjectId
+  name        String // radio_edit, explicit_version, instrumental, acoustic, live
+  description String?
+  audioUrl    String? // Alternative version URL
+  createdAt   DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, name])
+  @@map("song_features")
+}
+
+model Chart {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  type        String // trending, top_songs, new_releases, genre_specific
+  region      String? // global, VN, US, etc.
+  genre       String?
+  period      String // daily, weekly, monthly
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  entries ChartEntry[]
+
+  @@unique([name, region, period])
+  @@map("charts")
+}
+
+model ChartEntry {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  chartId          String   @db.ObjectId
+  songId           String   @db.ObjectId
+  position         Int
+  previousPosition Int?
+  streak           Int      @default(1) // How many periods at this position
+  peakPosition     Int?
+  entryDate        DateTime
+  createdAt        DateTime @default(now())
+
+  chart Chart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+  song  Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([chartId, songId, entryDate])
+  @@map("chart_entries")
+}
