@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 
 interface MusicPlayerProps {
   className?: string;
-  sidebarCollapsed?: boolean;
 }
 
 interface CurrentSong {
@@ -18,10 +17,8 @@ interface CurrentSong {
   duration: number;
 }
 
-export function MusicPlayer({
-  className,
-  sidebarCollapsed = false,
-}: MusicPlayerProps) {
+// Updated at 20:35 - Fixed layout issues
+export function MusicPlayer({ className }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [volume, setVolume] = React.useState(75);
@@ -51,16 +48,14 @@ export function MusicPlayer({
   return (
     <div
       className={cn(
-        "fixed bottom-0 right-0 z-40 bg-music-surface/95 backdrop-blur-md border-t border-music-surface-light transition-all duration-300",
-        sidebarCollapsed ? "left-16" : "left-64",
-        "h-20 px-6",
+        "fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border h-20 md:h-24 px-3 md:px-6 shadow-lg",
         className
       )}
     >
-      <div className="flex items-center justify-between h-full">
+      <div className="flex items-center justify-between h-full gap-2 md:gap-4">
         {/* Current Song Info */}
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-music-surface-light flex-shrink-0">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+          <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
             {currentSong.imageUrl ? (
               <img
                 src={currentSong.imageUrl}
@@ -71,7 +66,7 @@ export function MusicPlayer({
                 )}
               />
             ) : (
-              <div className="w-full h-full bg-music-gradient flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center">
                 <svg
                   className="w-6 h-6 text-white"
                   fill="currentColor"
@@ -84,10 +79,10 @@ export function MusicPlayer({
           </div>
 
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-music-text-primary truncate">
+            <h4 className="text-sm font-medium text-foreground truncate">
               {currentSong.title}
             </h4>
-            <p className="text-xs text-music-text-secondary truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {currentSong.artist}
             </p>
           </div>
@@ -101,9 +96,7 @@ export function MusicPlayer({
             <svg
               className={cn(
                 "w-4 h-4 transition-colors",
-                isLiked
-                  ? "text-music-primary fill-current"
-                  : "text-music-text-muted"
+                isLiked ? "text-primary fill-current" : "text-muted-foreground"
               )}
               fill={isLiked ? "currentColor" : "none"}
               stroke="currentColor"
@@ -120,16 +113,16 @@ export function MusicPlayer({
         </div>
 
         {/* Playback Controls */}
-        <div className="flex flex-col items-center gap-2 flex-1 max-w-md">
+        <div className="flex flex-col items-center gap-1 md:gap-2 flex-1 max-w-md">
           {/* Control Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => setIsShuffle(!isShuffle)}
               className={cn(
-                "transition-colors",
-                isShuffle && "text-music-primary"
+                "hidden md:flex transition-colors",
+                isShuffle && "text-primary"
               )}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -179,8 +172,8 @@ export function MusicPlayer({
               size="icon-sm"
               onClick={() => setIsRepeat(!isRepeat)}
               className={cn(
-                "transition-colors",
-                isRepeat && "text-music-primary"
+                "hidden md:flex transition-colors",
+                isRepeat && "text-primary"
               )}
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -191,11 +184,11 @@ export function MusicPlayer({
 
           {/* Progress Bar */}
           <div className="flex items-center gap-2 w-full">
-            <span className="text-xs text-music-text-muted min-w-0">
+            <span className="text-xs text-muted-foreground min-w-0">
               {formatTime(currentTime)}
             </span>
             <div
-              className="flex-1 h-1 bg-music-surface-light rounded-full cursor-pointer relative group"
+              className="flex-1 h-1 bg-muted rounded-full cursor-pointer relative group"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const percentage = (e.clientX - rect.left) / rect.width;
@@ -203,20 +196,39 @@ export function MusicPlayer({
               }}
             >
               <div
-                className="h-full bg-music-gradient rounded-full relative"
+                className="h-full bg-gradient-to-r from-primary to-chart-5 rounded-full relative"
                 style={{ width: `${progressPercentage}%` }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-music-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
-            <span className="text-xs text-music-text-muted min-w-0">
+            <span className="text-xs text-muted-foreground min-w-0">
               {formatTime(currentSong.duration)}
             </span>
           </div>
         </div>
 
+        {/* Mobile Controls */}
+        <div className="flex md:hidden items-center gap-2">
+          <Button variant="ghost" size="icon-sm">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+              />
+            </svg>
+          </Button>
+        </div>
+
         {/* Volume Controls */}
-        <div className="flex items-center gap-3 flex-1 justify-end">
+        <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
           <Button variant="ghost" size="icon-sm">
             <svg
               className="w-4 h-4"
@@ -284,7 +296,14 @@ export function MusicPlayer({
                 setVolume(newVolume);
                 if (newVolume > 0) setIsMuted(false);
               }}
-              className="w-20 h-1 bg-music-surface-light rounded-full appearance-none cursor-pointer"
+              className="w-20 h-1 bg-muted rounded-full appearance-none cursor-pointer slider"
+              style={{
+                background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${
+                  isMuted ? 0 : volume
+                }%, hsl(var(--muted)) ${
+                  isMuted ? 0 : volume
+                }%, hsl(var(--muted)) 100%)`,
+              }}
             />
           </div>
 

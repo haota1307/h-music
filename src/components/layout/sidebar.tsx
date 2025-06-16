@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,19 +58,20 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-music-surface-light bg-music-surface transition-all duration-300",
+        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border bg-background transition-all duration-300",
         isCollapsed ? "w-16" : "w-64",
         className
       )}
     >
       {/* Logo */}
-      <div className="flex items-center p-4 border-b border-music-surface-light">
+      <div className="flex items-center p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-music-gradient rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-chart-5 rounded-lg flex items-center justify-center">
             <svg
               className="w-5 h-5 text-white"
               fill="currentColor"
@@ -79,7 +81,9 @@ export function Sidebar({
             </svg>
           </div>
           {!isCollapsed && (
-            <h1 className="text-xl font-bold text-gradient">H-Music</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-chart-5 bg-clip-text text-transparent">
+              H-Music
+            </h1>
           )}
         </div>
       </div>
@@ -105,16 +109,16 @@ export function Sidebar({
         })}
 
         {/* Divider */}
-        <div className="my-6 border-t border-music-surface-light" />
+        <div className="my-6 border-t border-border" />
 
         {/* Playlists Section */}
         {!isCollapsed && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-music-text-secondary uppercase tracking-wide">
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Playlist
               </h3>
-              <Button variant="ghost" size="icon-sm">
+              <Button variant="ghost" size="icon" className="w-6 h-6">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -131,15 +135,15 @@ export function Sidebar({
               </Button>
             </div>
 
-            <div className="space-y-1 max-h-64 overflow-y-auto music-app">
+            <div className="space-y-1 max-h-64 overflow-y-auto">
               {playlistItems.map((playlist) => (
                 <Link key={playlist.href} href={playlist.href}>
                   <Button
                     variant="ghost"
-                    className="w-full justify-between h-10 px-3"
+                    className="w-full justify-between h-10 px-3 text-muted-foreground hover:text-foreground hover:bg-accent"
                   >
                     <span className="truncate text-left">{playlist.name}</span>
-                    <span className="text-xs text-music-text-muted">
+                    <span className="text-xs text-muted-foreground/70">
                       {playlist.count}
                     </span>
                   </Button>
@@ -151,29 +155,166 @@ export function Sidebar({
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-music-surface-light">
-        {!isCollapsed ? (
-          <Card variant="glass" padding="sm" className="cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-music-gradient flex items-center justify-center">
-                <span className="text-sm font-medium text-white">H</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-music-text-primary truncate">
-                  Hao Dev
-                </p>
-                <p className="text-xs text-music-text-secondary truncate">
-                  Premium
-                </p>
-              </div>
+      <div className="p-4 border-t border-border">
+        {status === "loading" ? (
+          <div className="flex items-center justify-center p-4">
+            <div className="w-6 h-6 border-2 border-muted border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : status === "authenticated" && session?.user ? (
+          !isCollapsed ? (
+            <div className="space-y-3">
+              <Card className="bg-card/50 backdrop-blur-sm border-border cursor-pointer hover:bg-accent/50 transition-colors">
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-chart-5 flex items-center justify-center">
+                    {session.user.avatar ? (
+                      <img
+                        src={session.user.avatar}
+                        alt={session.user.displayName || session.user.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-white">
+                        {(
+                          session.user.displayName ||
+                          session.user.username ||
+                          session.user.email ||
+                          "U"
+                        )
+                          .charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {session.user.displayName || session.user.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {session.user.subscriptionTier === "FREE"
+                        ? "Miễn phí"
+                        : "Premium"}
+                    </p>
+                  </div>
+                  {session.user.isVerified && (
+                    <div className="text-blue-400">
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </Card>
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground hover:text-foreground hover:bg-destructive/10 justify-start"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Đăng xuất
+              </Button>
             </div>
-          </Card>
+          ) : (
+            <div className="space-y-2">
+              <Button
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-chart-5 hover:bg-primary/90"
+                size="icon"
+              >
+                {session.user.avatar ? (
+                  <img
+                    src={session.user.avatar}
+                    alt={session.user.displayName || session.user.username}
+                    className="w-8 h-8 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-medium text-white">
+                    {(
+                      session.user.displayName ||
+                      session.user.username ||
+                      session.user.email ||
+                      "U"
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-12 h-12 text-muted-foreground hover:text-foreground hover:bg-destructive/10"
+                onClick={() => signOut({ callbackUrl: "/" })}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </Button>
+            </div>
+          )
+        ) : !isCollapsed ? (
+          <div className="space-y-2">
+            <Link href="/auth/signin" className="block">
+              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                Đăng nhập
+              </Button>
+            </Link>
+            <Link href="/auth/signup" className="block">
+              <Button
+                variant="outline"
+                className="w-full border-border text-muted-foreground hover:bg-accent"
+              >
+                Đăng ký
+              </Button>
+            </Link>
+          </div>
         ) : (
-          <Button variant="glass" size="icon" className="w-12 h-12 rounded-xl">
-            <div className="w-6 h-6 rounded-full bg-music-gradient flex items-center justify-center">
-              <span className="text-xs font-medium text-white">H</span>
-            </div>
-          </Button>
+          <div className="space-y-2">
+            <Link href="/auth/signin">
+              <Button
+                size="icon"
+                className="w-12 h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                  />
+                </svg>
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
@@ -181,7 +322,7 @@ export function Sidebar({
       <Button
         variant="ghost"
         size="icon"
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-music-surface border border-music-surface-light"
+        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-card border border-border"
         onClick={onToggle}
       >
         <svg

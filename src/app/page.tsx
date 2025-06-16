@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/main-layout";
+import { useCharts, useToggleFavorite } from "@/hooks/use-music";
 
 // Mock data cho nhạc Việt
 const featuredAlbums = [
@@ -167,12 +168,20 @@ export default function HomePage() {
       ? "Chào buổi chiều"
       : "Chào buổi tối";
 
+  // Demo usage of new hooks
+  const {
+    data: chartsData,
+    isLoading: chartsLoading,
+    error: chartsError,
+  } = useCharts("weekly");
+  const toggleFavorite = useToggleFavorite();
+
   return (
     <MainLayout>
-      <div className="space-y-10">
+      <div className="space-y-6 md:space-y-8 lg:space-y-12 pb-8 md:pb-12 relative">
         {/* Hero Section - Redesigned */}
-        <section className="relative">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 via-pink-600 to-purple-700 p-8 md:p-12">
+        <section className="relative -mx-3 md:-mx-4 lg:mx-0">
+          <div className="relative overflow-hidden rounded-xl md:rounded-3xl bg-gradient-to-br from-primary via-chart-5 to-chart-4 p-6 md:p-8 lg:p-12">
             {/* Background Elements */}
             <div className="absolute inset-0">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl" />
@@ -186,24 +195,24 @@ export default function HomePage() {
                   🎵 H-Music Vietnam
                 </span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
                 {greeting}! <br />
                 <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
                   Khám phá âm nhạc Việt
                 </span>
               </h1>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl leading-relaxed">
+              <p className="text-lg md:text-xl text-white/90 mb-6 md:mb-8 max-w-2xl leading-relaxed">
                 Thưởng thức những giai điệu Việt Nam hay nhất, từ V-Pop hiện đại
                 đến những ca khúc ballad bất hủ. Trải nghiệm âm nhạc không giới
                 hạn cùng H-Music.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                 <Button
                   size="lg"
-                  className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold"
+                  className="bg-white text-primary hover:bg-gray-100 px-6 md:px-8 py-3 md:py-4 text-base md:text-lg font-semibold shadow-lg"
                 >
                   <svg
-                    className="w-6 h-6 mr-3"
+                    className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -214,7 +223,7 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/50 text-white hover:bg-white/10 px-8 py-4 text-lg"
+                  className="border-white/50 text-white hover:bg-white/10 backdrop-blur-sm px-6 md:px-8 py-3 md:py-4 text-base md:text-lg"
                 >
                   Khám Phá Thư Viện
                 </Button>
@@ -228,7 +237,7 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold mb-8 text-foreground">
             Tâm Trạng Hôm Nay
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {moodCategories.map((mood, index) => (
               <Card
                 key={index}
@@ -260,7 +269,7 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold mb-8 text-foreground">
             Nghe Gần Đây
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
             {recentlyPlayed.map((playlist) => (
               <Card
                 key={playlist.id}
@@ -366,74 +375,127 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold mb-8 text-foreground">
             Bảng Xếp Hạng Việt
           </h2>
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20">
-              <CardTitle className="text-2xl">🏆 Top 50 Việt Nam</CardTitle>
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-primary/10 via-chart-5/10 to-chart-4/10 border-b border-border/50">
+              <CardTitle className="text-2xl flex items-center gap-3">
+                <span className="text-3xl">🏆</span>
+                <span>Top 50 Việt Nam</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-1">
+            <CardContent className="p-0 bg-card/50">
+              <div>
                 {topCharts.map((track, index) => (
                   <div
                     key={track.rank}
-                    className={`flex items-center gap-6 p-4 hover:bg-accent transition-colors cursor-pointer group ${
+                    className={`flex items-center gap-4 p-4 hover:bg-accent/80 transition-all duration-200 cursor-pointer group border-b border-border/20 last:border-b-0 ${
                       index < 3
-                        ? "bg-gradient-to-r from-yellow-50/50 to-orange-50/50 dark:from-yellow-950/10 dark:to-orange-950/10"
+                        ? "bg-gradient-to-r from-yellow-500/5 via-orange-500/5 to-red-500/5"
                         : ""
                     }`}
                   >
-                    <div className="flex items-center justify-center w-10 h-10">
+                    {/* Rank */}
+                    <div className="flex items-center justify-center w-12 h-12">
                       {index < 3 ? (
-                        <span className="text-2xl">
+                        <div className="text-3xl transform group-hover:scale-110 transition-transform">
                           {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
-                        </span>
+                        </div>
                       ) : (
-                        <span className="text-lg font-bold text-muted-foreground">
+                        <span className="text-lg font-bold text-muted-foreground w-8 text-center">
                           {track.rank}
                         </span>
                       )}
-        </div>
-                    <div className="w-14 h-14 bg-gradient-to-br from-red-400 to-pink-500 rounded-lg flex items-center justify-center">
-                      <svg
-                        className="w-7 h-7 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                      </svg>
                     </div>
+
+                    {/* Album Art */}
+                    <div className="relative">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-chart-5 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+                        <svg
+                          className="w-8 h-8 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                      </div>
+                      {/* Play overlay */}
+                      <div className="absolute inset-0 bg-black/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-3 h-3 text-black ml-0.5"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Track Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-foreground truncate">
+                      <h4 className="font-bold text-lg text-foreground truncate mb-1">
                         {track.title}
                       </h4>
-                      <p className="text-muted-foreground truncate">
+                      <p className="text-muted-foreground truncate text-sm">
                         {track.artist}
                       </p>
                     </div>
-                    <div className="text-right">
+
+                    {/* Play Count */}
+                    <div className="text-right hidden md:block">
                       <span className="text-sm font-medium text-muted-foreground">
                         {track.plays} lượt nghe
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-white"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {/* Heart Icon */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 hover:text-red-500"
                       >
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </Button>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                          />
+                        </svg>
+                      </Button>
+
+                      {/* More Options */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                        </svg>
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         </section>
-    </div>
+
+        {/* Spacer for Music Player */}
+        <div className="h-24" />
+      </div>
     </MainLayout>
   );
 }

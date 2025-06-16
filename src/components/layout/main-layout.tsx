@@ -2,74 +2,44 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Sidebar } from "./sidebar";
+import { AppSidebar } from "./app-sidebar";
 import { Header } from "./header";
 import { MusicPlayer } from "./music-player";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
   className?: string;
 }
 
+// Fixed sidebar overlap - 20:40
 export function MainLayout({ children, className }: MainLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
-  const [isMobile, setIsMobile] = React.useState(false);
-
-  // Check if mobile
-  React.useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
-        setSidebarCollapsed(true);
-      }
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
   return (
-    <div className="min-h-screen bg-black text-music-text-primary music-app">
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={sidebarCollapsed}
-        onToggle={toggleSidebar}
-        className={cn(
-          "transition-all duration-300",
-          isMobile && !sidebarCollapsed && "z-50"
-        )}
-      />
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {/* Header */}
+        <Header />
 
-      {/* Mobile Overlay */}
-      {isMobile && !sidebarCollapsed && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setSidebarCollapsed(true)}
-        />
-      )}
+        {/* Main Content */}
+        <main
+          className={cn(
+            "flex-1 pb-24 md:pb-32 lg:pb-36 min-h-[calc(100vh-56px)] md:min-h-[calc(100vh-64px)] relative overflow-auto",
+            className
+          )}
+        >
+          <div className="w-full mx-auto px-3 md:px-4 py-4 md:py-6 max-w-7xl">
+            {children}
+          </div>
+        </main>
+      </SidebarInset>
 
-      {/* Header */}
-      <Header sidebarCollapsed={sidebarCollapsed} />
-
-      {/* Main Content */}
-      <main
-        className={cn(
-          "transition-all duration-300 pt-16 pb-20",
-          sidebarCollapsed ? "ml-16" : "ml-64",
-          isMobile && "ml-0",
-          className
-        )}
-      >
-        <div className="container-music py-6">{children}</div>
-      </main>
-
-      {/* Music Player */}
-      <MusicPlayer sidebarCollapsed={sidebarCollapsed} />
-    </div>
+      {/* Music Player - Fixed globally outside SidebarInset */}
+      <MusicPlayer />
+    </SidebarProvider>
   );
 }

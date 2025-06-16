@@ -5,29 +5,29 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-music-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-music-gradient text-white shadow-music hover:shadow-music-lg hover:scale-105 active:scale-95",
+          "bg-gradient-to-br from-primary to-chart-5 text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
         destructive:
-          "bg-red-500 text-white shadow-sm hover:bg-red-600 hover:shadow-lg",
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border-2 border-music-primary text-music-primary bg-transparent hover:bg-music-primary hover:text-white hover:shadow-glow",
+          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground",
         secondary:
-          "bg-music-surface-light text-music-text-primary hover:bg-music-surface-lighter shadow-sm hover:shadow-md",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm hover:shadow-md",
         ghost:
-          "text-music-text-secondary hover:bg-music-surface-light hover:text-music-text-primary",
-        link: "text-music-primary underline-offset-4 hover:underline hover:text-music-primary-light",
+          "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
         gradient:
-          "bg-music-gradient text-white shadow-music hover:shadow-glow hover:scale-105 active:scale-95",
+          "bg-gradient-to-br from-primary to-chart-5 text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105 active:scale-95",
         glass:
-          "glass-effect text-music-text-primary hover:bg-opacity-90 border border-white/10",
-        icon: "h-10 w-10 rounded-full bg-music-surface-light hover:bg-music-primary hover:text-white transition-all duration-300",
-        play: "bg-music-primary text-white rounded-full shadow-glow hover:shadow-glow-lg hover:scale-110 active:scale-95",
+          "glass-effect text-foreground hover:bg-background/90 border border-border",
+        icon: "h-10 w-10 rounded-full bg-accent hover:bg-primary hover:text-primary-foreground transition-all duration-300",
+        play: "bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl hover:scale-110 active:scale-95",
         minimal:
-          "text-music-text-secondary hover:text-music-primary transition-colors",
+          "text-muted-foreground hover:text-foreground transition-colors",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -73,6 +73,18 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : "button";
+
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
 
     return (
       <Comp

@@ -1,4 +1,6 @@
 import { User, UserProfile, UserSubscription } from "./user";
+import { UserRole, SubscriptionTier, PermissionType } from "@prisma/client";
+import { DefaultSession } from "next-auth";
 
 // Authentication types
 export interface LoginCredentials {
@@ -230,4 +232,66 @@ export interface LinkAccountRequest {
 export interface UnlinkAccountRequest {
   accountId: string;
   password: string;
+}
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      username: string;
+      displayName?: string;
+      avatar?: string;
+      role: UserRole;
+      subscriptionTier: SubscriptionTier;
+      isVerified: boolean;
+      isArtist: boolean;
+      permissions: PermissionType[];
+    } & DefaultSession["user"];
+  }
+
+  interface User {
+    username: string;
+    displayName?: string;
+    avatar?: string;
+    role: UserRole;
+    subscriptionTier: SubscriptionTier;
+    isVerified: boolean;
+    isArtist: boolean;
+    permissions: PermissionType[];
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    username: string;
+    displayName?: string;
+    avatar?: string;
+    role: UserRole;
+    subscriptionTier: SubscriptionTier;
+    isVerified: boolean;
+    isArtist: boolean;
+    permissions: PermissionType[];
+  }
+}
+
+export interface SignUpData {
+  email: string;
+  username: string;
+  password: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  agreedToTerms: boolean;
+}
+
+export interface SignInData {
+  email: string;
+  password: string;
+  remember?: boolean;
+}
+
+export interface AuthError {
+  message: string;
+  code?: string;
 }

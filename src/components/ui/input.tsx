@@ -144,19 +144,23 @@ const SearchInput = React.forwardRef<
   ) : null;
 
   return (
-    <form onSubmit={handleSearch}>
-      <Input
-        ref={ref}
-        {...props}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Search for songs, artists, albums..."
-        leftIcon={searchIcon}
-        rightIcon={spinner || clearIcon}
-        onRightIconClick={!loading && value ? handleClear : undefined}
-        className={cn("search-input", className)}
-      />
-    </form>
+    <Input
+      ref={ref}
+      {...props}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      placeholder="Search for songs, artists, albums..."
+      leftIcon={searchIcon}
+      rightIcon={spinner || clearIcon}
+      onRightIconClick={!loading && value ? handleClear : undefined}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onSearch?.(String(value));
+        }
+      }}
+      className={cn("search-input", className)}
+    />
   );
 });
 SearchInput.displayName = "SearchInput";

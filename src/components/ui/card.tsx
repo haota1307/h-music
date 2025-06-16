@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
@@ -8,18 +9,19 @@ const cardVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-music-surface border-music-surface-light",
-        glass: "glass-effect border-white/10",
-        gradient: "bg-music-gradient border-transparent text-white",
-        outline: "bg-transparent border-music-primary border-2",
-        secondary: "bg-music-surface-light border-music-surface-lighter",
-        flat: "bg-music-surface-light border-transparent shadow-none",
+        default: "bg-card border-border",
+        glass: "bg-card/50 backdrop-blur-sm border-border/50",
+        gradient:
+          "bg-gradient-to-br from-primary to-secondary border-transparent text-white",
+        outline: "bg-transparent border-primary border-2",
+        secondary: "bg-secondary border-border",
+        flat: "bg-muted border-transparent shadow-none",
       },
       hover: {
         none: "",
-        lift: "card-hover",
-        glow: "hover:shadow-glow hover:border-music-primary/50",
-        scale: "hover:scale-105 hover:shadow-music-lg",
+        lift: "hover:shadow-lg transform transition-transform duration-200",
+        glow: "hover:shadow-xl hover:border-primary/50",
+        scale: "hover:scale-105 hover:shadow-lg",
       },
       padding: {
         none: "p-0",
@@ -44,13 +46,16 @@ export interface CardProps
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, hover, padding, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(cardVariants({ variant, hover, padding, className }))}
-      {...props}
-    />
-  )
+  ({ className, variant, hover, padding, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "div";
+    return (
+      <Comp
+        ref={ref}
+        className={cn(cardVariants({ variant, hover, padding, className }))}
+        {...props}
+      />
+    );
+  }
 );
 Card.displayName = "Card";
 
@@ -73,7 +78,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "font-semibold leading-none tracking-tight text-music-text-primary",
+      "font-semibold leading-none tracking-tight text-foreground",
       className
     )}
     {...props}
@@ -87,7 +92,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-music-text-secondary", className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));
@@ -148,9 +153,9 @@ const AlbumCard = React.forwardRef<
             )}
           />
         ) : (
-          <div className="w-full h-full bg-music-surface-lighter flex items-center justify-center">
+          <div className="w-full h-full bg-muted flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-music-text-muted"
+              className="w-8 h-8 text-muted-foreground"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -164,8 +169,8 @@ const AlbumCard = React.forwardRef<
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="w-1 bg-white rounded-full wave-animation"
-                  style={{ height: "20px" }}
+                  className="w-1 bg-white rounded-full animate-pulse"
+                  style={{ height: "20px", animationDelay: `${i * 0.1}s` }}
                 />
               ))}
             </div>
@@ -173,10 +178,8 @@ const AlbumCard = React.forwardRef<
         )}
       </div>
       <div>
-        <h4 className="font-medium text-music-text-primary truncate">
-          {title}
-        </h4>
-        <p className="text-sm text-music-text-secondary truncate">{artist}</p>
+        <h4 className="font-medium text-foreground truncate">{title}</h4>
+        <p className="text-sm text-muted-foreground truncate">{artist}</p>
       </div>
     </Card>
   )
@@ -208,7 +211,7 @@ const PlaylistCard = React.forwardRef<
           className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
         />
       ) : (
-        <div className="w-full h-full bg-music-gradient flex items-center justify-center">
+        <div className="w-full h-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
           <svg
             className="w-12 h-12 text-white"
             fill="currentColor"
@@ -220,16 +223,14 @@ const PlaylistCard = React.forwardRef<
       )}
     </div>
     <div className="p-4">
-      <h4 className="font-medium text-music-text-primary truncate mb-1">
-        {title}
-      </h4>
+      <h4 className="font-medium text-foreground truncate mb-1">{title}</h4>
       {description && (
-        <p className="text-sm text-music-text-secondary truncate mb-2">
+        <p className="text-sm text-muted-foreground truncate mb-2">
           {description}
         </p>
       )}
       {songCount && (
-        <p className="text-xs text-music-text-muted">{songCount} songs</p>
+        <p className="text-xs text-muted-foreground">{songCount} songs</p>
       )}
     </div>
   </Card>

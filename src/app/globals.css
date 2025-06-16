@@ -29,33 +29,50 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 72.2% 50.6%;
-    --primary-foreground: 0 85.7% 97.3%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Discord Dark Theme */
+    --background: 220 13% 18%; /* #2f3349 */
+    --foreground: 210 9% 89%; /* #dcddde */
+    --card: 223 7% 20%; /* #36393f */
+    --card-foreground: 210 9% 89%; /* #dcddde */
+    --popover: 223 7% 20%; /* #36393f */
+    --popover-foreground: 210 9% 89%; /* #dcddde */
+    --primary: 235 85.6% 64.7%; /* #5865f2 - Discord Blurple */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 228 6% 32.5%; /* #4f545c */
+    --secondary-foreground: 210 9% 89%;
+    --muted: 228 6% 32.5%; /* #4f545c */
+    --muted-foreground: 215 8.8% 73.3%; /* #b9bbbe */
+    --accent: 228 6% 32.5%; /* #4f545c */
+    --accent-foreground: 210 9% 89%;
+    --destructive: 359 82.6% 59.4%; /* #ed4245 */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 72.2% 50.6%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 228 6% 32.5%; /* #4f545c */
+    --input: 228 6% 32.5%; /* #4f545c */
+    --ring: 235 85.6% 64.7%; /* #5865f2 */
+    --chart-1: 235 85.6% 64.7%; /* Discord Blurple */
+    --chart-2: 142 76% 36%; /* Discord Green */
+    --chart-3: 38 95% 54%; /* Discord Yellow */
+    --chart-4: 359 82.6% 59.4%; /* Discord Red */
+    --chart-5: 262 83% 58%; /* Discord Purple */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   * {
@@ -101,42 +118,8 @@
     @apply bg-card/70 shadow-xl border-border/40 transform scale-105;
   }
 
-  .music-button {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
-  }
-
-  .music-button-primary {
-    @apply bg-music-primary text-white hover:bg-music-primary/90;
-  }
-
-  .music-input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-
   .glass-effect {
     @apply bg-background/80 backdrop-blur-md border border-border/20;
-  }
-
-  .gradient-music {
-    @apply bg-gradient-to-br from-music-primary to-music-secondary;
-  }
-
-  .text-gradient {
-    @apply bg-gradient-to-r from-music-primary to-music-secondary bg-clip-text text-transparent;
-  }
-
-  .shadow-music {
-    box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1),
-      0 2px 4px -1px rgba(220, 38, 38, 0.06);
-  }
-
-  .shadow-music-lg {
-    box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.1),
-      0 4px 6px -2px rgba(220, 38, 38, 0.05);
-  }
-
-  .glow-effect {
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
   }
 
   .animate-wave {
@@ -153,26 +136,109 @@
     }
   }
 
-  .music-scrollbar {
+  /* Beautiful scrollbar styling */
+  * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(220, 38, 38, 0.3) transparent;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
 
-  .music-scrollbar::-webkit-scrollbar {
-    width: 6px;
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
 
-  .music-scrollbar::-webkit-scrollbar-track {
+  *::-webkit-scrollbar-track {
     background: transparent;
+    border-radius: 4px;
   }
 
-  .music-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(220, 38, 38, 0.3);
-    border-radius: 3px;
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: all 0.2s ease;
   }
 
-  .music-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(220, 38, 38, 0.5);
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary) / 0.7);
+    background-clip: content-box;
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  @media (max-width: 768px) {
+    *::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground) / 0.2);
+    }
+  }
+
+  /* Slider styles */
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    border: 2px solid hsl(var(--background));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+  }
+
+  .slider::-moz-range-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsl(var(--primary));
+    cursor: pointer;
+    border: 2px solid hsl(var(--background));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Discord-themed utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-chart-5 bg-clip-text text-transparent;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.4);
+  }
+
+  .gradient-primary {
+    @apply bg-gradient-to-br from-primary to-chart-5;
+  }
+
+  /* Responsive utilities */
+  @media (max-width: 768px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  /* Fix for volume slider on mobile */
+  @media (max-width: 640px) {
+    .slider {
+      width: 60px;
+    }
   }
 }
 
@@ -236,5 +302,14 @@
 
   .grid-auto-fill {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

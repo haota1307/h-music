@@ -164,6 +164,7 @@ model User {
   id               String           @id @default(auto()) @map("_id") @db.ObjectId
   email            String           @unique
   username         String           @unique
+  password         String? // Nullable for OAuth users
   displayName      String?
   avatar           String?
   coverImage       String?
@@ -230,7 +231,6 @@ model User {
 
   // Permission System
   userPermissions UserPermission[]
-  rolePermissions RolePermission[] @relation("UserRoles")
 
   @@map("users")
 }
@@ -986,4 +986,37 @@ model ChartEntry {
 
   @@unique([chartId, songId, entryDate])
   @@map("chart_entries")
+}
+
+// Permission System (4 tables)
+model Permission {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  name        PermissionType @unique
+  description String?
+  category    String? // Content, User, System, Premium, etc.
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  userPermissions UserPermission[]
+
+  @@map("permissions")
+}
+
+model UserPermission {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String    @db.ObjectId
+  permissionId String    @db.ObjectId
+  granted      Boolean   @default(true) // true = granted, false = revoked
+  grantedBy    String?   @db.ObjectId // Who granted this permission
+  expiresAt    DateTime? // For temporary permissions
+  reason       String? // Why this permission was granted/revoked
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
 }

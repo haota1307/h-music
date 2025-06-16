@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ClientSessionProvider } from "@/components/providers/session-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata: Metadata = {
   title: "H-Music - Ứng Dụng Nghe Nhạc Việt Hàng Đầu",
@@ -28,10 +31,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" suppressHydrationWarning className="dark">
-      <body className={`${inter.className} bg-black text-white`}>
-        <ThemeProvider defaultTheme="dark" storageKey="h-music-theme">
-          {children}
-        </ThemeProvider>
+      <body className={`${inter.className} bg-background text-foreground`}>
+        <QueryProvider>
+          <ClientSessionProvider>
+            <ThemeProvider defaultTheme="dark" storageKey="h-music-theme">
+              {children}
+              <ToastProvider />
+            </ThemeProvider>
+          </ClientSessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );
