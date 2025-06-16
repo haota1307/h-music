@@ -217,6 +217,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // New login - set all user data
         token.id = user.id;
         token.username = user.username;
         token.displayName = user.displayName;
@@ -226,11 +227,56 @@ export const authOptions: NextAuthOptions = {
         token.isVerified = user.isVerified;
         token.isArtist = user.isArtist;
         token.permissions = user.permissions;
+      } else if (token.id) {
+        // Existing token - refresh permissions from database to ensure they're up to date
+        try {
+          const userPermissions = await getUserPermissions(token.id as string);
+          token.permissions = userPermissions;
+
+          // Also refresh user role and other critical data
+          const userData = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              role: true,
+              subscriptionTier: true,
+              isVerified: true,
+              isArtist: true,
+              status: true,
+            },
+          });
+
+          if (userData) {
+            token.role = userData.role;
+            token.subscriptionTier = userData.subscriptionTier;
+            token.isVerified = userData.isVerified;
+            token.isArtist = userData.isArtist;
+
+            // Mark if user is suspended/banned (will be handled in session callback)
+            token.userStatus = userData.status;
+          }
+        } catch (error) {
+          console.error("Error refreshing user permissions:", error);
+          // Don't fail the session, just keep existing permissions
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
+        // Check if user is suspended/banned
+        if (token.userStatus === "SUSPENDED" || token.userStatus === "BANNED") {
+          // Return minimal session for suspended users
+          return {
+            ...session,
+            user: {
+              ...session.user,
+              id: "",
+              role: "USER" as any,
+              permissions: [] as PermissionType[],
+            },
+          };
+        }
+
         session.user.id = token.id as string;
         session.user.username = token.username as string;
         session.user.displayName = token.displayName as string;

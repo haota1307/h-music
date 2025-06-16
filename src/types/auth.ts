@@ -272,6 +272,7 @@ declare module "next-auth/jwt" {
     isVerified: boolean;
     isArtist: boolean;
     permissions: PermissionType[];
+    userStatus?: string;
   }
 }
 

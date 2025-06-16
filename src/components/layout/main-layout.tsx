@@ -16,7 +16,6 @@ interface MainLayoutProps {
   className?: string;
 }
 
-// Fixed sidebar overlap - 20:40
 export function MainLayout({ children, className }: MainLayoutProps) {
   return (
     <SidebarProvider>

@@ -4,7 +4,19 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Home, Search, Library, Plus, User, Heart, Clock } from "lucide-react";
+import {
+  Home,
+  Search,
+  Library,
+  Plus,
+  User,
+  Heart,
+  Clock,
+  Settings,
+  Shield,
+  BarChart3,
+  Users,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +31,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const sidebarItems = [
   {
@@ -59,9 +72,70 @@ const playlistItems = [
   { name: "Nhạc Chill", href: "/playlist/chill", count: 128 },
 ];
 
+const adminItems = [
+  {
+    name: "Dashboard",
+    href: "/admin",
+    icon: BarChart3,
+    permission: "VIEW_ANALYTICS",
+  },
+  {
+    name: "Quản lý người dùng",
+    href: "/admin/users",
+    icon: Users,
+    permission: "VIEW_USERS",
+  },
+  {
+    name: "Kiểm duyệt nội dung",
+    href: "/admin/moderation",
+    icon: Shield,
+    permission: "MODERATE_CONTENT",
+  },
+  {
+    name: "Cài đặt hệ thống",
+    href: "/admin/settings",
+    icon: Settings,
+    permission: "MANAGE_SYSTEM",
+  },
+];
+
+// Helper function to get role badge color
+const getRoleBadgeVariant = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return "destructive"; // Red
+    case "MODERATOR":
+      return "default"; // Gray
+    case "ARTIST":
+      return "secondary"; // Blue-ish
+    case "USER":
+    default:
+      return "outline"; // Outline
+  }
+};
+
+// Helper function to get role display name
+const getRoleDisplayName = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return "Admin";
+    case "MODERATOR":
+      return "Mod";
+    case "ARTIST":
+      return "Artist";
+    case "USER":
+    default:
+      return "User";
+  }
+};
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+
+  // Simple role-based check - no permissions needed
+  const isAdmin = session?.user?.role === "ADMIN";
+  const showAdminSection = isAdmin;
 
   return (
     <Sidebar collapsible="icon">
@@ -123,6 +197,24 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Admin Quick Access - Single button for admin users */}
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/admin")}
+                  >
+                    <Link href="/admin">
+                      <Shield />
+                      <span>Đi đến trang quản trị</span>
+                      <Badge variant="destructive" className="ml-auto text-xs">
+                        Admin
+                      </Badge>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -185,10 +277,22 @@ export function AppSidebar() {
                     )}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {session.user.name || "Người dùng"}
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-semibold">
+                        {session.user.name || "Người dùng"}
+                      </span>
+                      <Badge
+                        variant={getRoleBadgeVariant(session.user.role)}
+                        className="text-xs px-1 py-0"
+                      >
+                        {getRoleDisplayName(session.user.role)}
+                      </Badge>
+                    </div>
+                    <span className="truncate text-xs">
+                      {session.user.subscriptionTier === "PREMIUM"
+                        ? "Premium"
+                        : "Miễn phí"}
                     </span>
-                    <span className="truncate text-xs">Miễn phí</span>
                   </div>
                 </Link>
               </SidebarMenuButton>

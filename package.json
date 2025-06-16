@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed:permissions": "npx tsx scripts/seed-permissions.ts",
+    "seed:admin": "npx tsx scripts/seed-admin.ts",
+    "update:admin": "npx tsx scripts/update-admin.ts",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate"
   },
@@ -25,6 +27,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slider": "^1.3.5",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
