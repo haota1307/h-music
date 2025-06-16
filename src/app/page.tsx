@@ -176,6 +176,13 @@ export default function HomePage() {
   } = useCharts("weekly");
   const toggleFavorite = useToggleFavorite();
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Charts data:", chartsData);
+    console.log("Charts loading:", chartsLoading);
+    console.log("Charts error:", chartsError);
+  }, [chartsData, chartsLoading, chartsError]);
+
   return (
     <MainLayout>
       <div className="space-y-6 md:space-y-8 lg:space-y-12 pb-8 md:pb-12 relative">

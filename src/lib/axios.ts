@@ -13,15 +13,6 @@ export const apiClient = axios.create({
 // Request interceptor - Add auth token
 apiClient.interceptors.request.use(
   async (config) => {
-    try {
-      const session = await getSession();
-      if ((session as any)?.accessToken) {
-        config.headers.Authorization = `Bearer ${(session as any).accessToken}`;
-      }
-    } catch (error) {
-      console.warn("Failed to get session in request interceptor:", error);
-    }
-
     // Add request ID for tracking
     config.headers["X-Request-ID"] = `req_${Date.now()}_${Math.random()
       .toString(36)
@@ -81,25 +72,10 @@ apiClient.interceptors.response.use(
       );
     }
 
-    // Handle 401 Unauthorized - Token expired
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Try to refresh token via NextAuth
-        const session = await getSession();
-        if ((session as any)?.accessToken) {
-          originalRequest.headers.Authorization = `Bearer ${
-            (session as any).accessToken
-          }`;
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
-        // Redirect to login or show auth modal
-        if (typeof window !== "undefined") {
-          window.location.href = "/auth/signin";
-        }
+    // Handle 401 Unauthorized - Redirect to login
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/signin";
       }
     }
 

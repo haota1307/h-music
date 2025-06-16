@@ -135,7 +135,7 @@ export function Sidebar({
               </Button>
             </div>
 
-            <div className="space-y-1 max-h-64 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto">
               {playlistItems.map((playlist) => (
                 <Link key={playlist.href} href={playlist.href}>
                   <Button
